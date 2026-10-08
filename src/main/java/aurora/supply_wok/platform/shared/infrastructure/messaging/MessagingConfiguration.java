@@ -20,6 +20,6 @@ public class MessagingConfiguration {
 
     @Bean
     public MessageConverter messageConverter() {
-        return new Jackson2JsonMessageConverter("aurora.supply_wok.platform.*");
+        return new Jackson2JsonMessageConverter("aurora.supply_wok.platform.profiles.interfaces.events");
     }
 }
