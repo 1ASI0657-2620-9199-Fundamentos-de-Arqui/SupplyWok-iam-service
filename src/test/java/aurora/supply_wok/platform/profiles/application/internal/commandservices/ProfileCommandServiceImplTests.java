@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,27 +56,23 @@ class ProfileCommandServiceImplTests {
     }
 
     @Test
-    void handle_whenProfileNotFoundByEmailAndSingleTypeExists_updatesAndSavesFallbackProfile() {
+    void handle_whenProfileNotFoundByEmailAndOtherProfileOfTypeExists_createsNewProfileWithoutReusingOther() {
         // Arrange
         var command = new UpdateProfileCommand(
                 EProfileType.RESTAURANT, "Wok House", "Carlos", "Perez", "newemail@wok.pe",
                 "Street 1", "District 1", "Lima", "Peru", "+51999999", true, false
         );
-        var singleExisting = new Profile(EProfileType.RESTAURANT);
-        singleExisting.setId(11L);
         when(profileRepository.findByProfileTypeAndEmail(EProfileType.RESTAURANT, "newemail@wok.pe"))
                 .thenReturn(Optional.empty());
-        when(profileRepository.findAllByProfileType(EProfileType.RESTAURANT))
-                .thenReturn(List.of(singleExisting));
-        when(profileRepository.save(singleExisting)).thenReturn(singleExisting);
+        when(profileRepository.save(any(Profile.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
         var result = profileCommandService.handle(command);
 
         // Assert
-        assertThat(result).isNotNull();
+        assertThat(result.getId()).isNull();
         assertThat(result.getEmail()).isEqualTo("newemail@wok.pe");
-        verify(profileRepository).save(singleExisting);
+        verify(profileRepository, never()).findAllByProfileType(any());
     }
 
     @Test
@@ -89,8 +84,6 @@ class ProfileCommandServiceImplTests {
         );
         when(profileRepository.findByProfileTypeAndEmail(EProfileType.RESTAURANT, "newemail@wok.pe"))
                 .thenReturn(Optional.empty());
-        when(profileRepository.findAllByProfileType(EProfileType.RESTAURANT))
-                .thenReturn(List.of(new Profile(EProfileType.RESTAURANT), new Profile(EProfileType.RESTAURANT)));
         when(profileRepository.save(any(Profile.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
@@ -111,8 +104,6 @@ class ProfileCommandServiceImplTests {
         );
         when(profileRepository.findByProfileTypeAndEmail(EProfileType.RESTAURANT, "newemail@wok.pe"))
                 .thenReturn(Optional.empty());
-        when(profileRepository.findAllByProfileType(EProfileType.RESTAURANT))
-                .thenReturn(List.of());
         when(profileRepository.save(any(Profile.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
@@ -133,8 +124,6 @@ class ProfileCommandServiceImplTests {
         );
         when(profileRepository.findByProfileTypeAndEmail(EProfileType.SUPPLIER, "maria@insumos.pe"))
                 .thenReturn(Optional.empty());
-        when(profileRepository.findAllByProfileType(EProfileType.SUPPLIER))
-                .thenReturn(List.of());
         when(profileRepository.save(any(Profile.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act

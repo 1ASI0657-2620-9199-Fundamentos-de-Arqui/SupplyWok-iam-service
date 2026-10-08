@@ -9,7 +9,6 @@ import aurora.supply_wok.platform.profiles.interfaces.events.SupplierProfileSync
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 
 /**
  * Default profile command service implementation.
@@ -28,11 +27,7 @@ public class ProfileCommandServiceImpl implements ProfileCommandService {
 
     @Override
     public Profile handle(UpdateProfileCommand command) {
-        var existingProfile = profileRepository.findByProfileTypeAndEmail(command.profileType(), command.email())
-                .or(() -> {
-                    var profiles = profileRepository.findAllByProfileType(command.profileType());
-                    return profiles.size() == 1 ? Optional.of(profiles.get(0)) : Optional.empty();
-                });
+        var existingProfile = profileRepository.findByProfileTypeAndEmail(command.profileType(), command.email());
         var profile = existingProfile.orElseGet(() -> new Profile(command.profileType()));
         profile.update(command);
         if (existingProfile.isPresent()) {
