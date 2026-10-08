@@ -1,7 +1,9 @@
 package aurora.supply_wok.platform.iam.infrastructure.authorization.sfs.pipeline;
 
+import aurora.supply_wok.platform.iam.infrastructure.authorization.sfs.model.UserDetailsImpl;
 import aurora.supply_wok.platform.iam.infrastructure.authorization.sfs.model.UsernamePasswordAuthenticationTokenBuilder;
 import aurora.supply_wok.platform.iam.infrastructure.tokens.jwt.BearerTokenService;
+import aurora.supply_wok.platform.shared.infrastructure.security.AuthenticatedUser;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,12 +11,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Qualifier;
-
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Bearer Authorization Request Filter.
@@ -28,7 +31,6 @@ import java.io.IOException;
 public class BearerAuthorizationRequestFilter extends OncePerRequestFilter {
 
     private final BearerTokenService tokenService;
-
 
     @Qualifier("defaultUserDetailsService")
     private final UserDetailsService userDetailsService;
@@ -51,7 +53,23 @@ public class BearerAuthorizationRequestFilter extends OncePerRequestFilter {
             if (token != null && tokenService.validateToken(token)) {
                 String email = tokenService.getEmailFromToken(token);
                 var userDetails = userDetailsService.loadUserByUsername(email);
-                SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationTokenBuilder.build(userDetails, request));
+                Long userId = null;
+                if (userDetails instanceof UserDetailsImpl userDetailsImpl) {
+                    userId = userDetailsImpl.getId();
+                }
+                List<String> roles = userDetails.getAuthorities() != null
+                        ? userDetails.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .map(auth -> auth.startsWith("ROLE_") ? auth.substring(5) : auth)
+                        .toList()
+                        : List.of();
+                var authenticatedUser = new AuthenticatedUser(userId, email, roles);
+                var authentication = UsernamePasswordAuthenticationTokenBuilder.build(
+                        authenticatedUser,
+                        userDetails.getAuthorities(),
+                        request
+                );
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             } else {
                 log.info("Token is not valid");
             }

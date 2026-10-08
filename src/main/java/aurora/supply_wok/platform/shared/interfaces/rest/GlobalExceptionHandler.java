@@ -1,10 +1,13 @@
 package aurora.supply_wok.platform.shared.interfaces.rest;
 
 import aurora.supply_wok.platform.shared.application.result.ApplicationError;
+import aurora.supply_wok.platform.shared.domain.exceptions.ResourceNotFoundException;
 import aurora.supply_wok.platform.shared.interfaces.rest.transform.ErrorResponseAssembler;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -61,6 +64,56 @@ public class GlobalExceptionHandler {
         var applicationError = ApplicationError.validationError(
                 resolveMessageOrDefault("validation.request.argument", "request-argument"),
                 ex.getMessage() != null ? ex.getMessage() : resolveMessageOrDefault("validation.request.failed", "Request validation failed")
+        );
+        return ErrorResponseAssembler.toErrorResponseFromApplicationError(applicationError);
+    }
+
+    /**
+     * Handles resource not found exceptions.
+     * Maps to a standardized 404 error response.
+     *
+     * @param ex the resource not found exception
+     * @return error response with NOT_FOUND status
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<?> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        var applicationError = ApplicationError.notFound(
+                "resource",
+                ex.getMessage() != null && !ex.getMessage().isBlank() ? ex.getMessage() : "Resource not found"
+        );
+        return ErrorResponseAssembler.toErrorResponseFromApplicationError(applicationError);
+    }
+
+    /**
+     * Handles access denied exceptions from Spring Security authorization checks.
+     * Maps to a standardized 403 error response.
+     *
+     * @param ex the access denied exception
+     * @return error response with FORBIDDEN status
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAccessDeniedException(AccessDeniedException ex) {
+        var applicationError = new ApplicationError(
+                "ACCESS_DENIED",
+                ex.getMessage() != null && !ex.getMessage().isBlank() ? ex.getMessage() : "Access denied",
+                "Insufficient permissions to perform this action"
+        );
+        return ErrorResponseAssembler.toErrorResponseFromApplicationError(applicationError);
+    }
+
+    /**
+     * Handles authentication exceptions when user credentials are missing or invalid.
+     * Maps to a standardized 401 error response.
+     *
+     * @param ex the authentication exception
+     * @return error response with UNAUTHORIZED status
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<?> handleAuthenticationException(AuthenticationException ex) {
+        var applicationError = new ApplicationError(
+                "UNAUTHORIZED",
+                ex.getMessage() != null && !ex.getMessage().isBlank() ? ex.getMessage() : "Authentication required",
+                "Authentication credentials are required or invalid"
         );
         return ErrorResponseAssembler.toErrorResponseFromApplicationError(applicationError);
     }

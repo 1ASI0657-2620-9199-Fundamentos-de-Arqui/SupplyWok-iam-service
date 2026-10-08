@@ -5,6 +5,7 @@ import aurora.supply_wok.platform.iam.domain.model.queries.GetAllUsersQuery;
 import aurora.supply_wok.platform.iam.domain.model.queries.GetUserByIdQuery;
 import aurora.supply_wok.platform.iam.interfaces.rest.resources.UserResource;
 import aurora.supply_wok.platform.iam.interfaces.rest.transform.UserResourceFromEntityAssembler;
+import aurora.supply_wok.platform.shared.infrastructure.security.CurrentUserProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,12 +16,15 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * REST controller that exposes IAM user resources.
@@ -30,9 +34,11 @@ import java.util.List;
 @Tag(name = "Users", description = "User management endpoints")
 public class UsersController {
     private final UserQueryService userQueryService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public UsersController(UserQueryService userQueryService) {
+    public UsersController(UserQueryService userQueryService, CurrentUserProvider currentUserProvider) {
         this.userQueryService = userQueryService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     /**
@@ -42,6 +48,7 @@ public class UsersController {
      * @see UserResource
      */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Get all users",
         description = "Retrieves a list of all users in the system with their roles.",
@@ -71,6 +78,7 @@ public class UsersController {
      * @see UserResource
      */
     @GetMapping(value = "/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or @currentUserProvider.userId() == #userId")
     @Operation(
         summary = "Get user by ID",
         description = "Retrieves a specific user's information by unique identifier.",
@@ -95,6 +103,10 @@ public class UsersController {
             )
             Long userId
     ) {
+        var currentUser = currentUserProvider.get();
+        if (!currentUser.hasRole("ADMIN") && !Objects.equals(currentUser.userId(), userId)) {
+            throw new AccessDeniedException("User is not authorized to access another user's details");
+        }
         var getUserByIdQuery = new GetUserByIdQuery(userId);
         var user = userQueryService.handle(getUserByIdQuery);
         if (user.isEmpty()) {

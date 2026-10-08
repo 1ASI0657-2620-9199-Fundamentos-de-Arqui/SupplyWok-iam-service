@@ -12,6 +12,15 @@ public enum EProfileType {
             throw new IllegalArgumentException("Profile type is required.");
         }
 
-        return EProfileType.valueOf(value.trim().toUpperCase());
+        String normalized = value.trim().toUpperCase();
+        if (normalized.endsWith("S")) {
+            String singular = normalized.substring(0, normalized.length() - 1);
+            try {
+                return EProfileType.valueOf(singular);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+
+        return EProfileType.valueOf(normalized);
     }
 }
