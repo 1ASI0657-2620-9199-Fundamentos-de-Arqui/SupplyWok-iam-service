@@ -36,7 +36,7 @@ public class Profile extends AbstractDomainAggregateRoot<Profile> {
 
     public Profile(EProfileType profileType) {
         this.profileType = profileType;
-        this.businessName = defaultBusinessName(profileType);
+        this.businessName = "";
         this.firstName = "";
         this.lastName = "";
         this.email = "";
@@ -93,9 +93,5 @@ public class Profile extends AbstractDomainAggregateRoot<Profile> {
 
     private static String normalize(String value) {
         return value == null ? "" : value.trim();
-    }
-
-    private static String defaultBusinessName(EProfileType profileType) {
-        return profileType == EProfileType.SUPPLIER ? "Distribuidora Fresh Andes" : "La Cucina Bella";
     }
 }

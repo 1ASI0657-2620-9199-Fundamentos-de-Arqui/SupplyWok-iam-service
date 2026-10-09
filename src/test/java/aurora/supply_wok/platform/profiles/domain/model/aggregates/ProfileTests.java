@@ -11,13 +11,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ProfileTests {
 
     @Test
-    void instantiate_withNoArgs_defaultsToRestaurantAndDefaultBusinessName() {
+    void instantiate_withNoArgs_defaultsToRestaurantAndEmptyBusinessName() {
         // Arrange & Act
         var profile = new Profile();
 
         // Assert
         assertThat(profile.getProfileType()).isEqualTo(EProfileType.RESTAURANT);
-        assertThat(profile.getBusinessName()).isEqualTo("La Cucina Bella");
+        assertThat(profile.getBusinessName()).isEmpty();
         assertThat(profile.isEmailNotifications()).isTrue();
         assertThat(profile.isSmsNotifications()).isFalse();
         assertThat(profile.getFirstName()).isEmpty();
@@ -25,13 +25,13 @@ class ProfileTests {
     }
 
     @Test
-    void instantiate_withSupplierType_defaultsToSupplierBusinessName() {
+    void instantiate_withSupplierType_defaultsToEmptyBusinessName() {
         // Arrange & Act
         var profile = new Profile(EProfileType.SUPPLIER);
 
         // Assert
         assertThat(profile.getProfileType()).isEqualTo(EProfileType.SUPPLIER);
-        assertThat(profile.getBusinessName()).isEqualTo("Distribuidora Fresh Andes");
+        assertThat(profile.getBusinessName()).isEmpty();
         assertThat(profile.isEmailNotifications()).isTrue();
         assertThat(profile.isSmsNotifications()).isFalse();
     }
@@ -43,7 +43,7 @@ class ProfileTests {
 
         // Assert
         assertThat(profile.getProfileType()).isEqualTo(EProfileType.SUPPLIER);
-        assertThat(profile.getBusinessName()).isEqualTo("Distribuidora Fresh Andes");
+        assertThat(profile.getBusinessName()).isEmpty();
     }
 
     @Test
@@ -153,7 +153,7 @@ class ProfileTests {
         var event = (ProfileCreatedEvent) profile.domainEvents().iterator().next();
         assertThat(event.profileId()).isEqualTo(12L);
         assertThat(event.profileType()).isEqualTo("RESTAURANT");
-        assertThat(event.businessName()).isEqualTo("La Cucina Bella");
+        assertThat(event.businessName()).isEmpty();
     }
 
     @Test
@@ -170,6 +170,6 @@ class ProfileTests {
         var event = (ProfileUpdatedEvent) profile.domainEvents().iterator().next();
         assertThat(event.profileId()).isEqualTo(25L);
         assertThat(event.profileType()).isEqualTo("SUPPLIER");
-        assertThat(event.businessName()).isEqualTo("Distribuidora Fresh Andes");
+        assertThat(event.businessName()).isEmpty();
     }
 }
